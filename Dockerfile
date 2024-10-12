@@ -18,5 +18,5 @@ RUN go build -o main /app/main.go
 # コンテナの8080ポートを公開
 EXPOSE 8080
 
-# コンテナ起動後に、実行ファイルを実行
-CMD /app/main
+# コンテナ起動後に、実行ファイルを実行 (JSON形式で指定)
+CMD ["/app/main"]
