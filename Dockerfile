@@ -1,5 +1,3 @@
-# Go 1.22のベースイメージを使用
-# 注意 go.mod記載のversionと合わせる
 # 軽量にするためalpineを使用
 FROM golang:1.23.1-alpine
 
