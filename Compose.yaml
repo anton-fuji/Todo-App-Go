@@ -1,0 +1,36 @@
+services:
+  api:
+    container_name: api
+    build: 
+      context: .
+      dockerfile: docker/golang/Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    networks:
+      - app_nw
+  
+  db:
+    container_name: mysql
+    build: 
+      context: .
+      dockerfile: docker/mysql/Dockerfile
+    env_file:
+      - .env
+    volumes:
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+      - db_data:/var/lib/mysql
+    ports:
+      - "3307:3306"
+    networks:
+      - app_nw
+
+networks:
+  app_nw:
+
+volumes:
+  db_data:
+
