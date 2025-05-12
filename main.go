@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
 
@@ -38,10 +40,9 @@ func getDBConfig() DBConfig {
 		Password: os.Getenv("DB_PASSWORD"),
 		Host:     os.Getenv("DB_HOST"),
 		Port:     port,
-		Database: os.Getenv("MYSQL_DATABASE"), // ここをMYSQL_DATABASEに変更
+		Database: os.Getenv("MYSQL_DATABASE"),
 	}
 
-	// デバッグ用：設定確認
 	fmt.Printf("DB Config: %+v\n", config)
 	return config
 }
@@ -59,6 +60,70 @@ func connectionDB() (*gorm.DB, error) {
 	return db, err
 }
 
+func errorDB(db *gorm.DB, c *gin.Context) bool {
+	if db.Error != nil {
+		log.Printf("Error todos: %v", db.Error)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return true
+	}
+	return false
+}
+
+func listeners(r *gin.Engine, db *gorm.DB) {
+	r.GET("/todo/delete", func(c *gin.Context) {
+		id, _ := c.GetQuery("id")
+		result := db.Delete(&Todo{}, id)
+		if errorDB(result, c) {
+			return
+		}
+	})
+
+	r.POST("/todo/update", func(c *gin.Context) {
+		id, _ := strconv.Atoi(c.PostForm("id"))
+		content := c.PostForm("content")
+		var todo Todo
+		result := db.Where("id = ?", id).Take(&todo)
+		if errorDB(result, c) {
+			return
+		}
+		todo.Content = content
+		result = db.Save(&todo)
+		if errorDB(result, c) {
+			return
+		}
+	})
+
+	r.POST("/todo/create", func(c *gin.Context) {
+		content := c.PostForm("content")
+		fmt.Println(c.Request.PostForm, content)
+		result := db.Create(&Todo{Content: content})
+		if errorDB(result, c) {
+			return
+		}
+	})
+
+	r.GET("/todo/list", func(c *gin.Context) {
+		var todos []Todo
+		result := db.Find(&todos)
+		if errorDB(result, c) {
+			return
+		}
+		fmt.Println(json.NewEncoder(os.Stdout).Encode(todos))
+		c.JSON(http.StatusOK, todos)
+
+		r.GET("/todo/get", func(c *gin.Context) {
+			var todo Todo
+			id, _ := c.GetQuery("id")
+			result := db.First(&todo, id)
+			if errorDB(result, c) {
+				return
+			}
+			fmt.Println(json.NewEncoder(os.Stdout).Encode(todo))
+			c.JSON(http.StatusOK, todo)
+		})
+	})
+}
+
 func main() {
 	r := gin.Default()
 	db, err := connectionDB()
@@ -73,12 +138,7 @@ func main() {
 		log.Fatalf("Failed to migrate database: %v", err)
 	}
 
-	// Pingエンドポイント
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "pong",
-		})
-	})
+	listeners(r, db)
 
 	fmt.Println("Database connection and setup successful")
 	r.Run(":8080")
