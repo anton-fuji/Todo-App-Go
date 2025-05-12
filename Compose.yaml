@@ -12,6 +12,7 @@ services:
       - db
     networks:
       - app_nw
+    command: ["sh", "-c", "sleep 10 && ./main"]
   
   db:
     container_name: mysql
@@ -27,6 +28,11 @@ services:
       - "3307:3306"
     networks:
       - app_nw
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 networks:
   app_nw:

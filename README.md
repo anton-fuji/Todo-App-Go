@@ -1,5 +1,3 @@
-### Usage
-Docker Desktopを起動した状態で `docker build -t todo-app .`
+# ToDo App with Gin
 
-Next Step
-`docker run -p 8080:8080 todo-app`
+mysql -h db -u root -ppassword -P 3306 -D ToDo_Go
